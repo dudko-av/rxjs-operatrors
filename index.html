@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css"/>
+    <script src="zone.js/dist/zone.js"></script>
+    <script src="rxjs/dist/rx.js"></script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <button class="btn btn-primary" onclick="runScript()">Run</button>
+            </div>
+            <div class="col-md-1">
+                <div><button class="btn btn-default btn-sm" onclick="loadScript('interval')">interval</button></div>
+                <div><button class="btn btn-default btn-sm" onclick="loadScript('of')">of</button></div>
+            </div>
+            <div class="col-md-5">
+                <pre id="scriptSource"></pre>
+            </div>
+            <div class="col-md-6">
+                <!--<pre id="logConsole"></pre>-->
+                <div id="logConsole" class="well"></div>
+            </div>
+        </div>
+    </div>
+<script>
+    var logConsole = document.getElementById("logConsole");
+    var loadedScript = '';
+    var originConsoleLogFunction = console.log;
+    console.log = function () {
+        var i = arguments.length;
+        while (i) {
+            $log(arguments[--i]);
+        }
+        originConsoleLogFunction.apply(this, arguments);
+    };
+
+    function $log(line) {
+        var newLog = document.createElement('DIV');
+        newLog.style.borderBottom = 'dotted gray 1px';
+        newLog.innerHTML = line;
+        logConsole.appendChild(newLog);
+    }
+
+    function loadScript(path) {
+        GET('operators/' + path + '.ts', function (resText) {
+            document.getElementById("scriptSource").innerHTML = resText;
+        });
+        GET('operators/' + path + '.js', function (resText) {
+            loadedScript = resText;
+        });
+    }
+
+    function runScript() {
+        eval(loadedScript);
+    }
+
+    function GET(scriptPath, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                callback(xhr.responseText);
+            }
+        };
+        xhr.open('GET', scriptPath);
+        xhr.send();
+    }
+
+</script>
+</body>
+</html>
