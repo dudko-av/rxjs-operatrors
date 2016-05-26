@@ -4,49 +4,82 @@
     <meta charset="UTF-8">
     <title></title>
     <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css"/>
-    <script src="zone.js/dist/zone.js"></script>
+    <style>
+        body {
+            padding-top: 25px;;
+        }
+        #logConsole > div {
+            border-bottom: 1px dotted gray;
+        }
+        #logConsole > div:last-child {
+            border-bottom: none;
+        }
+        .btn-load-script, .btn-run-script {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+    </style>
+    <script src="zonejs/dist/zone.js"></script>
+    <script src="zonejs/dist/long-stack-trace-zone.js"></script>
+    <script src="zonejs/example/js/except-zone.js"></script>
     <script src="rxjs/dist/rx.all.js"></script>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-12">
-                <button class="btn btn-primary" onclick="runScript()">Run</button>
-            </div>
             <div class="col-md-1">
-                <div><button class="btn btn-default btn-sm" onclick="loadScript('interval')">interval</button></div>
-                <div><button class="btn btn-default btn-sm" onclick="loadScript('of')">of</button></div>
+                <div><button class="btn btn-default btn-sm btn-load-script" onclick="loadScript('interval')">interval</button></div>
+                <div><button class="btn btn-default btn-sm btn-load-script" onclick="loadScript('of')">of</button></div>
+                <div><button class="btn btn-default btn-sm btn-load-script" onclick="loadScript('map-mapTo')">map-mapTo</button></div>
+                <div><button class="btn btn-default btn-sm btn-load-script" onclick="loadScript('scan')">scan</button></div>
+                <div><button class="btn btn-default btn-sm btn-load-script" onclick="loadScript('zip')">zip</button></div>
+                <div><button class="btn btn-default btn-sm btn-load-script" onclick="loadScript('buffer')">buffer</button></div>
             </div>
             <div class="col-md-5">
                 <pre id="scriptSource"></pre>
             </div>
-            <div class="col-md-6">
-                <!--<pre id="logConsole"></pre>-->
+            <div class="col-md-1">
+                <button class="btn btn-primary btn-sm btn-run-script" onclick="runScript()">Run</button>
+            </div>
+            <div class="col-md-5">
                 <div id="logConsole" class="well"></div>
+            </div>
+            <div  class="col-md-11 col-md-offset-1">
+                <div id="logTimeline" class="well well-sm"></div>
             </div>
         </div>
     </div>
 <script>
     var logConsole = document.getElementById("logConsole");
+    var logTimelineElem = document.getElementById("logTimeline");
+    function logTimeline(val) {
+        logTimelineElem.innerHTML = logTimelineElem.innerHTML + '---(' + val + ')';
+    }
     var loadedScript = '';
+
     var originConsoleLogFunction = console.log;
     console.log = function () {
         var i = arguments.length;
         while (i) {
             $log(arguments[--i]);
         }
-        originConsoleLogFunction.apply(this, arguments);
+        // originConsoleLogFunction.apply(this, arguments);
     };
 
     function $log(line) {
+        logTimeline(line);
         var newLog = document.createElement('DIV');
-        newLog.style.borderBottom = 'dotted gray 1px';
         newLog.innerHTML = line;
         logConsole.appendChild(newLog);
     }
 
     function loadScript(path) {
+        clearConsole();
         GET('operators/' + path + '.ts', function (resText) {
+            resText = resText
+                    .replace(/>/g, '&gt;')
+                    .replace(/</g, '&lt;')
+                    .replace(/"/g, '&quot;');
             document.getElementById("scriptSource").innerHTML = resText;
         });
         GET('operators/' + path + '.js', function (resText) {
@@ -55,8 +88,16 @@
     }
 
     function runScript() {
-        logConsole.innerHTML = '';
-        eval(loadedScript);
+//        eval(loadedScript);
+
+        /** Run in zone */
+        Zone.current.fork({
+            onInvokeTask(parent, current, target, task) {
+                parent.invokeTask(target, task);
+            }
+        }).run(function () {
+            eval(loadedScript);
+        });
     }
 
     function GET(scriptPath, callback) {
@@ -68,6 +109,11 @@
         };
         xhr.open('GET', scriptPath);
         xhr.send();
+    }
+
+    function clearConsole() {
+        logConsole.innerHTML = '';
+        logTimelineElem.innerHTML = '';
     }
 
 </script>
