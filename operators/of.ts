@@ -7,4 +7,3 @@ foo.subscribe(
     err => console.log(err),
     () => console.log('Done')
 );
-

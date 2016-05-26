@@ -6,7 +6,7 @@ var source$ = Rx.Observable.of('h', 'e', 'l', 'l', 'o')
 
 /**
  * source$-> -----h-----e-----l-----l-----...-----|
- * output$-> -----0-----1-----2-----3-----...-----|
+ * output$-> -----------h,e----------l,l-----...-----|
  */
 
 var output$ = source$.bufferCount(2);
